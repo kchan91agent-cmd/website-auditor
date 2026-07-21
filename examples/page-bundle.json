@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "primaryUrl": "https://example.com/",
+  "observedAt": "2026-07-18T00:00:00.000Z",
+  "acquisition": {
+    "method": "owner-cms-export",
+    "sourceName": "Example CMS production export",
+    "ownerAuthorized": true
+  },
+  "pages": [
+    {
+      "url": "https://example.com/",
+      "title": "Example",
+      "headings": ["Run better operations"],
+      "sections": [
+        {
+          "heading": "Run better operations",
+          "element": "p",
+          "text": "Coordinate work in one place."
+        }
+      ],
+      "links": [
+        {
+          "href": "https://example.com/product",
+          "text": "Product",
+          "placement": "primary-nav"
+        }
+      ]
+    },
+    {
+      "url": "https://example.com/product",
+      "title": "Example Product",
+      "headings": ["Product"],
+      "sections": [
+        {
+          "heading": "Product",
+          "element": "p",
+          "text": "Plan, approve, and track work."
+        }
+      ],
+      "links": []
+    }
+  ]
+}

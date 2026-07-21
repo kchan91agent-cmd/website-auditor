@@ -1,0 +1,14 @@
+node_modules/
+test-results/
+playwright-report/
+audit-output/
+checkpoints/
+.env
+.env.*
+!.env.example
+.cache/
+.website-messaging-cache/
+*.token
+*.pem
+*.key
+*.log

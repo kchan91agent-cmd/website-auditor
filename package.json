@@ -1,0 +1,50 @@
+{
+  "name": "website-messaging-rollout-agent",
+  "version": "0.1.0",
+  "description": "Audit a public website against an authoritative PMM messaging source and prioritize rollout updates.",
+  "type": "module",
+  "bin": {
+    "website-messaging-rollout": "src/cli.js"
+  },
+  "files": [
+    "AGENTS.md",
+    "README.md",
+    "adjudication-reviewer.html",
+    "docs/",
+    "examples/",
+    "scripts/",
+    "src/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "audit": "node src/cli.js audit",
+    "build-messaging-model": "node src/cli.js build-messaging-model",
+    "build-page-bundle": "node src/cli.js build-page-bundle",
+    "build-adjudication-queue": "node src/cli.js build-adjudication-queue",
+    "build-adjudication-reviewer": "node src/cli.js build-adjudication-reviewer",
+    "apply-adjudications": "node src/cli.js apply-adjudications",
+    "validate-output": "node src/cli.js validate-output",
+    "setup-browser": "playwright install chromium",
+    "preflight": "node scripts/preflight.mjs",
+    "test": "node --test",
+    "check:portability": "node scripts/check-portability.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "fast-xml-parser": "5.7.0",
+    "jszip": "3.10.1",
+    "linkedom": "0.18.12",
+    "mammoth": "1.11.0",
+    "pdfjs-dist": "5.4.54",
+    "playwright": "1.55.1"
+  },
+  "keywords": [
+    "product-marketing",
+    "messaging",
+    "website-audit",
+    "content-governance"
+  ],
+  "license": "MIT"
+}

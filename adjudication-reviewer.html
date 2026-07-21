@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Messaging Review Desk</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17231f;
+      --muted: #68736d;
+      --paper: #f6f4ee;
+      --surface: #fffefa;
+      --line: #d9ddd7;
+      --green: #195c45;
+      --green-soft: #e5f0e9;
+      --amber: #9a5a0b;
+      --amber-soft: #fff1d6;
+      --red: #a23d38;
+      --red-soft: #fbe9e7;
+      --blue: #315b83;
+      --blue-soft: #eaf1f7;
+      --shadow: 0 14px 34px rgba(31, 45, 39, .08);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); line-height: 1.5; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; }
+    header { border-bottom: 1px solid var(--line); background: rgba(255, 254, 250, .92); }
+    .header-inner, main { width: min(1320px, calc(100% - 40px)); margin: 0 auto; }
+    .header-inner { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: white; background: var(--green); font: 750 15px/1 Georgia, serif; letter-spacing: -.04em; }
+    .brand strong { display: block; font-size: 15px; letter-spacing: -.01em; }
+    .brand span { display: block; color: var(--muted); font-size: 12px; }
+    .privacy { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #b9cec4; border-radius: 999px; color: var(--green); background: var(--green-soft); font-size: 12px; font-weight: 700; }
+    .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    main { padding: 44px 0 56px; }
+    .intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; margin-bottom: 28px; }
+    .eyebrow { margin: 0 0 8px; color: var(--green); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: 0; font: 600 clamp(34px, 5vw, 58px)/1.02 Georgia, "Times New Roman", serif; letter-spacing: -.045em; }
+    .intro-copy { max-width: 680px; margin: 18px 0 0; color: var(--muted); font-size: 16px; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+    .button { min-height: 42px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font-weight: 750; box-shadow: 0 1px 0 rgba(0,0,0,.02); }
+    .button:hover { border-color: #aeb8b1; background: white; }
+    .button.primary { border-color: var(--green); color: white; background: var(--green); }
+    .button.primary:hover { background: #104b37; }
+    .button:disabled { cursor: not-allowed; opacity: .45; }
+    .button.danger { color: var(--red); }
+    input[type="file"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .empty { display: grid; place-items: center; min-height: 430px; padding: 54px 24px; border: 1px dashed #b5bdb8; border-radius: 18px; background: rgba(255,255,255,.5); text-align: center; }
+    .empty-card { max-width: 560px; }
+    .empty-icon { width: 58px; height: 58px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 18px; background: var(--green-soft); color: var(--green); font-size: 27px; }
+    .empty h2 { margin: 0 0 10px; font: 600 27px/1.15 Georgia, serif; letter-spacing: -.02em; }
+    .empty p { margin: 0 auto 22px; color: var(--muted); }
+    .empty.drag { outline: 3px solid rgba(25,92,69,.18); border-color: var(--green); background: var(--green-soft); }
+    .workspace[hidden], .empty[hidden] { display: none; }
+    .notice { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 15px 17px; margin-bottom: 18px; border: 1px solid #efcf96; border-radius: 12px; background: var(--amber-soft); color: #6d430e; font-size: 13px; }
+    .notice strong { display: block; margin-bottom: 2px; }
+    .notice .symbol { font-size: 18px; }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; overflow: hidden; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--line); }
+    .metric { padding: 16px 18px; background: var(--surface); }
+    .metric span { display: block; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 3px; font: 600 26px/1 Georgia, serif; }
+    .progress { height: 4px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: #e8e9e5; }
+    .progress > div { height: 100%; width: 0; background: var(--green); transition: width .2s ease; }
+    .review-grid { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.6fr); gap: 18px; align-items: start; }
+    .panel { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+    .queue-panel { position: sticky; top: 18px; overflow: hidden; }
+    .panel-head { padding: 17px 18px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 15px; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .filters { display: flex; gap: 6px; padding: 12px 13px; border-bottom: 1px solid var(--line); }
+    .filter { padding: 6px 9px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .filter[aria-pressed="true"] { border-color: var(--line); background: #f0f2ee; color: var(--ink); }
+    .page-list { max-height: calc(100vh - 300px); min-height: 260px; overflow: auto; }
+    .page-button { width: 100%; padding: 15px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 11px; align-items: start; border: 0; border-bottom: 1px solid #e8eae6; background: transparent; color: var(--ink); text-align: left; }
+    .page-button:hover { background: #f7f8f5; }
+    .page-button[aria-current="true"] { background: var(--green-soft); box-shadow: inset 3px 0 var(--green); }
+    .priority { min-width: 30px; padding: 3px 6px; border-radius: 6px; color: var(--green); background: #e5eee9; font-size: 11px; font-weight: 850; text-align: center; }
+    .priority.p0 { color: var(--red); background: var(--red-soft); }
+    .priority.p1 { color: var(--amber); background: var(--amber-soft); }
+    .page-title { display: block; font-size: 13px; font-weight: 760; line-height: 1.35; }
+    .page-meta { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .status-dot { width: 9px; height: 9px; margin-top: 5px; border: 2px solid #a7aea9; border-radius: 50%; }
+    .status-dot.done { border-color: var(--green); background: var(--green); }
+    .detail { overflow: hidden; }
+    .detail-hero { padding: 24px 26px 20px; border-bottom: 1px solid var(--line); }
+    .detail-topline { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .attempt { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .detail h2 { margin: 0; font: 600 29px/1.12 Georgia, serif; letter-spacing: -.025em; }
+    .url { max-width: 100%; margin: 8px 0 0; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-body { padding: 24px 26px 28px; }
+    .section-title { margin: 0 0 12px; font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .feedback { display: grid; gap: 10px; margin-bottom: 27px; }
+    .feedback-card { padding: 15px 16px; border: 1px solid var(--line); border-left: 3px solid var(--red); border-radius: 9px; background: #fff; }
+    .feedback-role { display: flex; justify-content: space-between; gap: 12px; color: var(--red); font-size: 11px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .feedback-card p { margin: 7px 0 0; color: #48534e; font-size: 13px; }
+    .codes { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .code { padding: 3px 6px; border-radius: 5px; color: #6c514f; background: var(--red-soft); font: 650 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    fieldset { min-width: 0; margin: 0 0 23px; padding: 0; border: 0; }
+    legend { margin-bottom: 12px; font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .choice { position: relative; display: block; min-height: 132px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .choice:hover { border-color: #aab5ae; }
+    .choice:has(input:checked) { border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
+    .choice input { position: absolute; top: 15px; right: 14px; accent-color: var(--green); }
+    .choice strong { display: block; padding-right: 22px; font-size: 13px; }
+    .choice span { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field { display: grid; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 12px; font-weight: 750; }
+    .field input, .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); outline: none; }
+    .field input { min-height: 42px; padding: 8px 10px; }
+    .field textarea { min-height: 112px; padding: 10px; resize: vertical; }
+    .field input:focus, .field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(25,92,69,.12); }
+    .field .error { border-color: var(--red); }
+    .detail-footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 15px 26px; border-top: 1px solid var(--line); background: #fafaf7; }
+    .save-state { color: var(--muted); font-size: 12px; }
+    .save-state.ok { color: var(--green); font-weight: 700; }
+    .footer-actions { display: flex; gap: 8px; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 10; max-width: 390px; padding: 12px 15px; border-radius: 9px; color: white; background: var(--ink); box-shadow: var(--shadow); font-size: 13px; transform: translateY(18px); opacity: 0; pointer-events: none; transition: .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 850px) {
+      .intro { grid-template-columns: 1fr; align-items: start; }
+      .button-row { justify-content: flex-start; }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .review-grid { grid-template-columns: 1fr; }
+      .queue-panel { position: static; }
+      .page-list { max-height: 310px; }
+    }
+    @media (max-width: 600px) {
+      .header-inner, main { width: min(100% - 24px, 1320px); }
+      main { padding-top: 30px; }
+      .intro { gap: 22px; }
+      .privacy { padding: 6px 8px; }
+      .summary { grid-template-columns: 1fr 1fr; }
+      .metric { padding: 13px; }
+      .choices, .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .choice { min-height: 0; }
+      .detail-hero, .detail-body { padding-left: 18px; padding-right: 18px; }
+      .detail-footer { align-items: flex-start; flex-direction: column; padding-left: 18px; padding-right: 18px; }
+      .footer-actions { width: 100%; }
+      .footer-actions .button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="header-inner">
+        <div class="brand"><div class="mark" aria-hidden="true">MR</div><div><strong>Messaging Review Desk</strong><span>Human adjudication workspace</span></div></div>
+        <div class="privacy">Local only · no network</div>
+      </div>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="page-heading">
+        <div>
+          <p class="eyebrow">Approval safeguard</p>
+          <h1 id="page-heading">Resolve the judgment calls the agents couldn’t.</h1>
+          <p class="intro-copy">Review exact rejection feedback, record a bounded decision, and export a queue the audit can validate. Nothing leaves this browser.</p>
+        </div>
+        <div class="button-row">
+          <label class="button" for="queue-file">Import queue</label>
+          <input id="queue-file" type="file" accept="application/json,.json">
+          <button class="button danger" id="clear-button" type="button" disabled>Clear draft</button>
+          <button class="button primary" id="export-button" type="button" disabled>Export decisions</button>
+        </div>
+      </section>
+
+      <section class="empty" id="empty-state" aria-label="Import adjudication queue">
+        <div class="empty-card">
+          <div class="empty-icon" aria-hidden="true">↓</div>
+          <h2>Bring in a quarantine queue</h2>
+          <p>Choose or drop the JSON file produced by <strong>build-adjudication-queue</strong>. The file stays on this device.</p>
+          <label class="button primary" for="queue-file">Choose queue file</label>
+        </div>
+      </section>
+
+      <section class="workspace" id="workspace" hidden>
+        <div class="notice"><div class="symbol" aria-hidden="true">!</div><div><strong>Evidence boundary</strong><span id="evidence-notice"></span></div></div>
+        <div class="summary" aria-label="Review summary">
+          <div class="metric"><span>Pages</span><strong id="metric-pages">0</strong></div>
+          <div class="metric"><span>Decided</span><strong id="metric-decided">0</strong><div class="progress"><div id="progress-bar"></div></div></div>
+          <div class="metric"><span>High priority</span><strong id="metric-high">0</strong></div>
+          <div class="metric"><span>Run</span><strong id="metric-run" style="font-size:15px; line-height:1.4; overflow-wrap:anywhere">—</strong></div>
+        </div>
+
+        <div class="review-grid">
+          <aside class="panel queue-panel" aria-label="Quarantined pages">
+            <div class="panel-head"><h2>Quarantine queue</h2><p>Select a page to review its rejected checks.</p></div>
+            <div class="filters" role="group" aria-label="Filter pages">
+              <button class="filter" type="button" data-filter="all" aria-pressed="true">All</button>
+              <button class="filter" type="button" data-filter="open" aria-pressed="false">Needs decision</button>
+              <button class="filter" type="button" data-filter="done" aria-pressed="false">Complete</button>
+            </div>
+            <div class="page-list" id="page-list"></div>
+          </aside>
+
+          <article class="panel detail" id="detail-panel" aria-live="polite"></article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script id="embedded-queue" type="application/json"></script>
+
+  <script>
+    (() => {
+      "use strict";
+      const allowedDecisions = new Set(["keep-quarantined", "authorize-retry", "manual-exception"]);
+      const decisionCopy = {
+        "keep-quarantined": ["Keep quarantined", "Confirm the recommendation should remain blocked."],
+        "authorize-retry": ["Authorize one retry", "Permit one new repair and four-agent review for this exact input."],
+        "manual-exception": ["Manual exception", "Manual use only. Never cached or approved for publication."]
+      };
+      const state = { queue: null, selected: 0, filter: "all", filename: "adjudication-queue.json" };
+      const $ = (selector) => document.querySelector(selector);
+      const fileInput = $("#queue-file");
+      const emptyState = $("#empty-state");
+      const workspace = $("#workspace");
+      const exportButton = $("#export-button");
+      const clearButton = $("#clear-button");
+      const pageList = $("#page-list");
+      const detail = $("#detail-panel");
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+      }
+      function isComplete(item) {
+        return allowedDecisions.has(item.decision) && [item.adjudicator, item.adjudicatorRole, item.rationale].every(value => typeof value === "string" && value.trim().length > 0);
+      }
+      function validateQueue(queue) {
+        if (!queue || queue.schemaVersion !== "1.0" || queue.kind !== "website-quarantine-adjudication-queue" || !Array.isArray(queue.items)) throw new Error("This is not a supported adjudication queue.");
+        if (!queue.runId || !queue.primaryUrl || !queue.evidenceNotice) throw new Error("The queue is missing its run or evidence provenance.");
+        const digests = new Set();
+        for (const item of queue.items) {
+          if (!/^sha256:[a-f0-9]{64}$/.test(item.inputDigest || "") || !/^sha256:[a-f0-9]{64}$/.test(item.modelDigest || "") || !/^sha256:[a-f0-9]{64}$/.test(item.evaluationDigest || "")) throw new Error("A page is missing its exact-input binding.");
+          if (!item.pageId || !item.url || !Array.isArray(item.rejections) || !item.rejections.length) throw new Error("A page is missing identity or rejection feedback.");
+          if (digests.has(item.inputDigest)) throw new Error("The queue contains a duplicate analysis input.");
+          digests.add(item.inputDigest);
+          if (item.decision !== null && !allowedDecisions.has(item.decision)) throw new Error("A page contains an unsupported decision.");
+        }
+        return queue;
+      }
+      function storageKey() { return `messaging-review-draft:${state.queue.runId}`; }
+      function saveDraft() {
+        if (!state.queue) return;
+        try { localStorage.setItem(storageKey(), JSON.stringify(state.queue)); } catch (_) {}
+      }
+      function restoreDraft(queue) {
+        try {
+          const saved = localStorage.getItem(`messaging-review-draft:${queue.runId}`);
+          if (!saved) return queue;
+          const draft = validateQueue(JSON.parse(saved));
+          if (draft.items.length !== queue.items.length || draft.items.some((item, i) => item.inputDigest !== queue.items[i].inputDigest || item.evaluationDigest !== queue.items[i].evaluationDigest)) return queue;
+          return draft;
+        } catch (_) { return queue; }
+      }
+      function toast(message) {
+        const node = $("#toast");
+        node.textContent = message;
+        node.classList.add("show");
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => node.classList.remove("show"), 2600);
+      }
+      function counts() {
+        const decided = state.queue.items.filter(isComplete).length;
+        return { decided, total: state.queue.items.length, high: state.queue.items.filter(item => item.priority === "P0" || item.priority === "P1").length };
+      }
+      function renderSummary() {
+        const result = counts();
+        $("#metric-pages").textContent = result.total;
+        $("#metric-decided").textContent = result.decided;
+        $("#metric-high").textContent = result.high;
+        $("#metric-run").textContent = state.queue.runId;
+        $("#progress-bar").style.width = `${result.total ? result.decided / result.total * 100 : 0}%`;
+        exportButton.disabled = result.decided === 0;
+        exportButton.textContent = result.decided ? `Export ${result.decided} decision${result.decided === 1 ? "" : "s"}` : "Export decisions";
+      }
+      function visibleItems() {
+        return state.queue.items.map((item, index) => ({ item, index })).filter(({ item }) => state.filter === "all" || (state.filter === "done" ? isComplete(item) : !isComplete(item)));
+      }
+      function renderList() {
+        const rows = visibleItems();
+        pageList.innerHTML = rows.length ? rows.map(({ item, index }) => `
+          <button class="page-button" type="button" data-index="${index}" aria-current="${index === state.selected}">
+            <span class="priority ${item.priority.toLowerCase()}">${escapeHtml(item.priority)}</span>
+            <span><span class="page-title">${escapeHtml(item.title || item.url)}</span><span class="page-meta">${item.rejections.length} rejected check${item.rejections.length === 1 ? "" : "s"}</span></span>
+            <span class="status-dot ${isComplete(item) ? "done" : ""}" aria-label="${isComplete(item) ? "Decision complete" : "Decision incomplete"}"></span>
+          </button>`).join("") : `<div style="padding:28px 18px;color:var(--muted);font-size:13px;text-align:center">No pages match this filter.</div>`;
+        pageList.querySelectorAll("button[data-index]").forEach(button => button.addEventListener("click", () => { state.selected = Number(button.dataset.index); render(); }));
+      }
+      function renderDetail() {
+        const item = state.queue.items[state.selected];
+        if (!item) { detail.innerHTML = ""; return; }
+        detail.innerHTML = `
+          <div class="detail-hero">
+            <div class="detail-topline"><span class="priority ${item.priority.toLowerCase()}">${escapeHtml(item.priority)}</span><span class="attempt">Rejection attempt ${item.rejectionAttempt + 1}</span></div>
+            <h2>${escapeHtml(item.title || item.url)}</h2>
+            <p class="url">${escapeHtml(item.url)}</p>
+          </div>
+          <div class="detail-body">
+            <h3 class="section-title">Why the agents held this back</h3>
+            <div class="feedback">${item.rejections.map(review => `
+              <div class="feedback-card">
+                <div class="feedback-role"><span>${escapeHtml(review.role.replaceAll("-", " "))}</span><span>Rejected</span></div>
+                <p>${escapeHtml(review.rationale)}</p>
+                ${review.issueCodes?.length ? `<div class="codes">${review.issueCodes.map(code => `<span class="code">${escapeHtml(code)}</span>`).join("")}</div>` : ""}
+              </div>`).join("")}</div>
+            <fieldset>
+              <legend>Decision</legend>
+              <div class="choices">${Object.entries(decisionCopy).map(([value, copy]) => `
+                <label class="choice"><input type="radio" name="decision" value="${value}" ${item.decision === value ? "checked" : ""}><strong>${copy[0]}</strong><span>${copy[1]}</span></label>`).join("")}</div>
+            </fieldset>
+            <div class="form-grid">
+              <div class="field"><label for="adjudicator">Your name</label><input id="adjudicator" autocomplete="name" value="${escapeHtml(item.adjudicator || "")}" placeholder="Name"></div>
+              <div class="field"><label for="adjudicator-role">Your role</label><input id="adjudicator-role" value="${escapeHtml(item.adjudicatorRole || "")}" placeholder="e.g. Product Marketing"></div>
+              <div class="field full"><label for="rationale">Rationale</label><textarea id="rationale" placeholder="Explain the evidence or judgment behind this decision.">${escapeHtml(item.rationale || "")}</textarea></div>
+            </div>
+          </div>
+          <div class="detail-footer"><span class="save-state ${isComplete(item) ? "ok" : ""}">${isComplete(item) ? "Decision complete · saved locally" : "Complete all fields to resolve this page"}</span><div class="footer-actions"><button class="button" type="button" id="previous-page" ${state.selected === 0 ? "disabled" : ""}>Previous</button><button class="button" type="button" id="next-page" ${state.selected === state.queue.items.length - 1 ? "disabled" : ""}>Next</button></div></div>`;
+        detail.querySelectorAll('input[name="decision"]').forEach(input => input.addEventListener("change", event => updateItem("decision", event.target.value)));
+        $("#adjudicator").addEventListener("input", event => updateItem("adjudicator", event.target.value, false));
+        $("#adjudicator-role").addEventListener("input", event => updateItem("adjudicatorRole", event.target.value, false));
+        $("#rationale").addEventListener("input", event => updateItem("rationale", event.target.value, false));
+        $("#previous-page").addEventListener("click", () => { state.selected -= 1; render(); });
+        $("#next-page").addEventListener("click", () => { state.selected += 1; render(); });
+      }
+      function updateItem(field, value, rerender = true) {
+        state.queue.items[state.selected][field] = value;
+        saveDraft();
+        if (rerender) render(); else { renderSummary(); renderList(); const note = detail.querySelector(".save-state"); const done = isComplete(state.queue.items[state.selected]); note.textContent = done ? "Decision complete · saved locally" : "Complete all fields to resolve this page"; note.classList.toggle("ok", done); }
+      }
+      function render() { renderSummary(); renderList(); renderDetail(); }
+      function loadQueue(queue, filename) {
+        try {
+          queue = validateQueue(queue);
+          state.queue = restoreDraft(queue);
+          state.filename = filename.replace(/\.json$/i, "") + "-completed.json";
+          state.selected = 0;
+          state.filter = "all";
+          $("#evidence-notice").textContent = state.queue.evidenceNotice;
+          emptyState.hidden = true;
+          workspace.hidden = false;
+          clearButton.disabled = false;
+          document.querySelectorAll(".filter").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.filter === "all")));
+          render();
+          toast(`Loaded ${state.queue.items.length} quarantined pages.`);
+          fileInput.value = "";
+        } catch (error) { toast(error.message || "The queue could not be loaded."); }
+      }
+      async function importFile(file) {
+        if (!file) return;
+        try { loadQueue(JSON.parse(await file.text()), file.name); }
+        catch (error) { toast(error.message || "The queue could not be loaded."); }
+      }
+      function exportQueue() {
+        const complete = state.queue.items.filter(isComplete).length;
+        if (!complete) return toast("Complete at least one decision before exporting.");
+        const incompleteDecision = state.queue.items.findIndex(item => item.decision !== null && !isComplete(item));
+        if (incompleteDecision !== -1) {
+          state.selected = incompleteDecision;
+          state.filter = "all";
+          document.querySelectorAll(".filter").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.filter === "all")));
+          render();
+          return toast("Finish the selected decision before exporting.");
+        }
+        const blob = new Blob([JSON.stringify(state.queue, null, 2) + "\n"], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = state.filename;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        toast(`Exported ${complete} completed decision${complete === 1 ? "" : "s"}.`);
+      }
+      function clearDraft() {
+        if (!state.queue) return;
+        if (!confirm("Clear every local decision for this queue? The source file will not be changed.")) return;
+        state.queue.items.forEach(item => { item.decision = null; item.adjudicator = null; item.adjudicatorRole = null; item.rationale = null; });
+        try { localStorage.removeItem(storageKey()); } catch (_) {}
+        render();
+        toast("Local decisions cleared.");
+      }
+      fileInput.addEventListener("change", event => importFile(event.target.files[0]));
+      exportButton.addEventListener("click", exportQueue);
+      clearButton.addEventListener("click", clearDraft);
+      document.querySelectorAll(".filter").forEach(button => button.addEventListener("click", () => {
+        state.filter = button.dataset.filter;
+        document.querySelectorAll(".filter").forEach(node => node.setAttribute("aria-pressed", String(node === button)));
+        renderList();
+      }));
+      ["dragenter", "dragover"].forEach(type => emptyState.addEventListener(type, event => { event.preventDefault(); emptyState.classList.add("drag"); }));
+      ["dragleave", "drop"].forEach(type => emptyState.addEventListener(type, event => { event.preventDefault(); emptyState.classList.remove("drag"); }));
+      emptyState.addEventListener("drop", event => importFile(event.dataTransfer.files[0]));
+      const embeddedQueue = document.querySelector("#embedded-queue");
+      if (embeddedQueue?.textContent.trim()) {
+        try { loadQueue(JSON.parse(embeddedQueue.textContent), "preloaded-adjudication-queue.json"); }
+        catch (error) { toast(error.message || "The preloaded queue could not be opened."); }
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "primaryUrl": "https://example.com/",
+  "sourceName": "Public pilot pages saved in Chrome",
+  "pages": [
+    {
+      "url": "https://example.com/",
+      "file": "saved-pages/home.html"
+    },
+    {
+      "url": "https://example.com/product",
+      "file": "saved-pages/product.html"
+    }
+  ]
+}
