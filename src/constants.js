@@ -17,7 +17,7 @@ export const LIMITS = Object.freeze({
   analysisBatchCharacters: 30_000
 });
 
-export const USER_AGENT = "WebsiteMessagingRolloutAgent/0.1";
+export const USER_AGENT = "WebsiteMessagingRolloutAgent/0.2";
 
 export const PAGE_TYPES = Object.freeze([
   "homepage", "pricing", "product", "solution", "use-case", "persona", "industry",

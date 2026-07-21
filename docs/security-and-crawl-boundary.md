@@ -1,5 +1,11 @@
 # Security and Crawl Boundary
 
+## Model-provider boundary
+
+The audit supports Codex CLI and Claude Code through the same validated JSON contracts. Both providers run non-interactively in an isolated temporary directory and receive only the bounded audit payload. Provider calls cannot use tools, execute repository code, edit files, browse, load MCP servers, or persist a conversational session. Codex runs with a read-only sandbox and ephemeral configuration. Claude Code runs in bare mode with built-in tools disabled, MCP tools denied, strict empty MCP configuration, non-interactive permissions, and session persistence disabled.
+
+The provider executable may be selected through `CODEX_BIN` or `CLAUDE_BIN`. These variables identify executable paths only; API keys and login credentials remain under the selected CLI's own authenticated environment and are never accepted as audit command arguments or written to reports.
+
 ## Protected-site acquisition
 
 When explicitly authorized repository access is supplied, repository content is the primary acquisition source and public crawling is not attempted in the same audit. Local checkouts are read in place. GitHub API access accepts credentials only through a named environment variable and requires no more than read-only Contents permission for the selected repository. Tokens are never included in command arguments, reports, cache keys, progress events, or source provenance.
@@ -20,7 +26,7 @@ The final homepage redirect hostname becomes the primary host. Pages on other ho
 
 The crawler:
 
-- identifies itself as `WebsiteMessagingRolloutAgent/0.1`;
+- identifies itself as `WebsiteMessagingRolloutAgent/0.2`;
 - respects robots.txt and sitemap declarations;
 - blocks images, media, fonts, downloads, popups, forms, service workers, and persistent state;
 - uses a fresh browser context per page;

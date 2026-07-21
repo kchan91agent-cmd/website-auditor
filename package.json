@@ -1,6 +1,6 @@
 {
   "name": "website-messaging-rollout-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Audit a public website against an authoritative PMM messaging source and prioritize rollout updates.",
   "type": "module",
   "bin": {

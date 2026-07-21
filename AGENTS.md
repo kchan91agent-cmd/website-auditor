@@ -9,9 +9,9 @@ The agent performs a one-time advisory audit of one authoritative messaging file
 ## Required Workflow
 
 1. Run `npm run preflight`.
-2. Use `npm run audit` with one domain, one messaging file, an explicit Codex provider, and an authorized output directory. If repository access is supplied, confirm that it is explicitly authorized and treat it as primary evidence.
+2. Use `npm run audit` with one domain, one messaging file, an explicit `codex` or `claude` provider, and an authorized output directory. If repository access is supplied, confirm that it is explicitly authorized and treat it as primary evidence.
 3. Respect robots.txt, the primary-host boundary, repository read limits, and all built-in crawl limits.
-4. Keep repository contents, rendered bodies, provider payloads, and checkpoints in restricted temporary or user-authorized storage. GitHub tokens must enter only through a named environment variable and must never appear in logs or artifacts.
+4. Keep repository contents, rendered bodies, provider payloads, and checkpoints in restricted temporary or user-authorized storage. GitHub tokens must enter only through a named environment variable and must never appear in logs or artifacts. Provider calls must remain non-interactive, isolated, tool-free, and ephemeral.
 5. Return the complete validated Markdown report to a nontechnical reviewer.
 6. Preserve exact page and messaging excerpts; never invent provenance.
 

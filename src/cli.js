@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { runAudit } from "./audit.js";
 import { LIMITS } from "./constants.js";
 import { validateArtifact } from "./contracts.js";
-import { createCodexProvider } from "./provider.js";
+import { createClaudeProvider, createCodexProvider } from "./provider.js";
 import { AuditError } from "./safety.js";
 import { ensurePrivateDirectory, readJson, writeExclusive } from "./utils.js";
 import { buildBundleFromSavedHtml } from "./html-capture.js";
@@ -43,6 +43,14 @@ function limitsFrom(args) {
   };
 }
 
+function providerFrom(args) {
+  const providerName = flag(args, "--provider");
+  const config = { model: flag(args, "--model") ?? undefined, effort: flag(args, "--effort") ?? undefined };
+  if (providerName === "codex") return createCodexProvider(config);
+  if (providerName === "claude") return createClaudeProvider(config);
+  throw new AuditError("USAGE", "--provider must be codex or claude.");
+}
+
 async function persist(outDir, result) {
   await ensurePrivateDirectory(outDir);
   const paths = {
@@ -67,8 +75,8 @@ async function audit(args) {
   const providerName = flag(args, "--provider");
   const repositorySourceCount = Number(Boolean(repoPath)) + Number(Boolean(githubRepo));
   const validSource = pagesPath ? !domain && repositorySourceCount === 0 : domain && repositorySourceCount <= 1;
-  if (!validSource || !messagingPath || !outDir || providerName !== "codex") {
-    throw new AuditError("USAGE", "Audit requires --provider codex, --messaging <file>, --out <directory>, and either --pages <bundle.json> or --domain <https-url> optionally paired with one of --repo <checkout> or --github-repo <owner/repository>.");
+  if (!validSource || !messagingPath || !outDir || !["codex", "claude"].includes(providerName)) {
+    throw new AuditError("USAGE", "Audit requires --provider codex|claude, --messaging <file>, --out <directory>, and either --pages <bundle.json> or --domain <https-url> optionally paired with one of --repo <checkout> or --github-repo <owner/repository>.");
   }
   if (acquisitionMode && !["common-crawl", "wayback", "archives"].includes(acquisitionMode)) throw new AuditError("USAGE", "--acquisition supports common-crawl, wayback, or archives.");
   if (pagesPath && acquisitionMode) throw new AuditError("USAGE", "--acquisition cannot be combined with --pages.");
@@ -79,7 +87,7 @@ async function audit(args) {
   const githubToken = githubTokenEnv ? process.env[githubTokenEnv] : undefined;
   if (githubTokenEnv && !githubToken) throw new AuditError("MISSING_GITHUB_TOKEN", "The named GitHub token environment variable is empty or unavailable.");
   const onProgress = hasFlag(args, "--progress") ? (event) => console.error(JSON.stringify({ type: "website-messaging-rollout-progress", ...event })) : undefined;
-  const provider = createCodexProvider({ model: flag(args, "--model") ?? undefined, effort: flag(args, "--effort") ?? undefined });
+  const provider = providerFrom(args);
   const result = await runAudit({
     domain,
     pagesPath,
@@ -106,8 +114,8 @@ async function buildMessagingModel(args) {
   const messagingPath = flag(args, "--messaging");
   const outPath = flag(args, "--out");
   const providerName = flag(args, "--provider");
-  if (!messagingPath || !outPath || providerName !== "codex") throw new AuditError("USAGE", "Build-messaging-model requires --provider codex, --messaging <file>, and --out <model.json>.");
-  const provider = createCodexProvider({ model: flag(args, "--model") ?? undefined, effort: flag(args, "--effort") ?? undefined });
+  if (!messagingPath || !outPath || !["codex", "claude"].includes(providerName)) throw new AuditError("USAGE", "Build-messaging-model requires --provider codex|claude, --messaging <file>, and --out <model.json>.");
+  const provider = providerFrom(args);
   const source = await ingestMessaging(messagingPath);
   const model = await provider.extractMessaging(source);
   const artifact = buildMessagingModelArtifact({ source, model, modelConfig: provider.modelConfig });

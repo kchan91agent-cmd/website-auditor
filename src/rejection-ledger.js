@@ -21,7 +21,7 @@ const reviewSchema = {
 const attemptSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["schemaVersion", "kind", "createdAt", "attempt", "mode", "inputDigest", "modelDigest", "evaluationDigest", "evaluation", "approvalGate"],
+  required: ["schemaVersion", "kind", "createdAt", "attempt", "mode", "inputDigest", "modelDigest", "providerConfig", "evaluationDigest", "evaluation", "approvalGate"],
   properties: {
     schemaVersion: { const: "1.0" },
     kind: { const: "website-evaluation-rejection-attempt" },
@@ -30,6 +30,7 @@ const attemptSchema = {
     mode: { type: "string", enum: ["initial", "targeted-repair", "human-authorized-retry"] },
     inputDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
     modelDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
+    providerConfig: { type: "object" },
     evaluationDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
     evaluation: PAGE_EVALUATION_SCHEMA.properties.evaluations.items,
     approvalGate: {
@@ -102,21 +103,22 @@ function validateApprovalGate(gate) {
   if (gate.status !== expectedStatus) throw new AuditError("INVALID_REJECTION_LEDGER", "Rejection attempt status does not match its reviewer decisions.");
 }
 
-export async function loadRejectionHistory({ directory, page, messaging, modelDigest }) {
-  const inputDigest = evaluationInputDigest(page, modelDigest);
+export async function loadRejectionHistory({ directory, page, messaging, modelDigest, providerConfig = { provider: "unspecified" } }) {
+  const inputDigest = evaluationInputDigest(page, modelDigest, providerConfig);
   const path = attemptDirectory(directory, inputDigest);
   const attempts = await readAttemptArtifacts(path, inputDigest);
   for (const artifact of attempts) {
     if (artifact.modelDigest !== modelDigest) throw new AuditError("REJECTION_LEDGER_MISMATCH", "Rejection attempt does not match the current messaging model.");
+    if (JSON.stringify(artifact.providerConfig) !== JSON.stringify(providerConfig)) throw new AuditError("REJECTION_LEDGER_MISMATCH", "Rejection attempt does not match the current provider configuration.");
     validatePageResponse({ scoreScale: "0-100", evaluations: [artifact.evaluation] }, [pageEvaluationInput(page)], messaging);
   }
   return { inputDigest, path, attempts };
 }
 
-export async function storeRejectionAttempt({ directory, page, evaluation, approvalGate, mode, messaging, modelDigest, createdAt = new Date().toISOString() }) {
+export async function storeRejectionAttempt({ directory, page, evaluation, approvalGate, mode, messaging, modelDigest, providerConfig = { provider: "unspecified" }, createdAt = new Date().toISOString() }) {
   validatePageResponse({ scoreScale: "0-100", evaluations: [evaluation] }, [pageEvaluationInput(page)], messaging);
   validateApprovalGate(approvalGate);
-  const history = await loadRejectionHistory({ directory, page, messaging, modelDigest });
+  const history = await loadRejectionHistory({ directory, page, messaging, modelDigest, providerConfig });
   const attempt = history.attempts.length;
   if (attempt === 0 && mode !== "initial") throw new AuditError("INVALID_REJECTION_SEQUENCE", "The first rejection-ledger attempt must be initial.");
   if (attempt === 1 && mode !== "targeted-repair") throw new AuditError("INVALID_REJECTION_SEQUENCE", "The second rejection-ledger attempt must be the targeted repair.");
@@ -130,6 +132,7 @@ export async function storeRejectionAttempt({ directory, page, evaluation, appro
     mode,
     inputDigest: history.inputDigest,
     modelDigest,
+    providerConfig,
     evaluationDigest: sha256(JSON.stringify(evaluation)),
     evaluation,
     approvalGate

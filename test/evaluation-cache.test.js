@@ -77,6 +77,20 @@ test("evaluation cache reuses only the exact validated analysis input", async ()
   }
 });
 
+test("evaluation cache isolates provider and model configurations", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "website-evaluation-cache-"));
+  const modelDigest = `sha256:${"a".repeat(64)}`;
+  const claude = { provider: "claude", model: "sonnet", effort: "high" };
+  try {
+    await storeCachedEvaluation({ directory, page: page(), evaluation: evaluation(), approvalGate, messaging, modelDigest, providerConfig: claude });
+    assert.ok(await loadCachedEvaluation({ directory, page: page(), messaging, modelDigest, providerConfig: claude }));
+    assert.equal(await loadCachedEvaluation({ directory, page: page(), messaging, modelDigest, providerConfig: { provider: "codex", model: "host-selected", effort: "host-selected" } }), null);
+    assert.equal(await loadCachedEvaluation({ directory, page: page(), messaging, modelDigest, providerConfig: { ...claude, model: "opus" } }), null);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("evaluation cache refuses decisions without unanimous four-role approval", async () => {
   const directory = await mkdtemp(join(tmpdir(), "website-evaluation-cache-"));
   try {

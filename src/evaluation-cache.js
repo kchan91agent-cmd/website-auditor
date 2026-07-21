@@ -8,7 +8,7 @@ import { ensurePrivateDirectory, sha256, writeExclusive } from "./utils.js";
 const cacheSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["schemaVersion", "kind", "createdAt", "contractVersion", "approvalGateVersion", "inputDigest", "modelDigest", "evaluationDigest", "evaluation", "approvalGate"],
+  required: ["schemaVersion", "kind", "createdAt", "contractVersion", "approvalGateVersion", "inputDigest", "modelDigest", "providerConfig", "evaluationDigest", "evaluation", "approvalGate"],
   properties: {
     schemaVersion: { const: "1.0" },
     kind: { const: "website-page-evaluation" },
@@ -17,6 +17,7 @@ const cacheSchema = {
     approvalGateVersion: { const: APPROVAL_GATE_VERSION },
     inputDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
     modelDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
+    providerConfig: { type: "object" },
     evaluationDigest: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
     evaluation: PAGE_EVALUATION_SCHEMA.properties.evaluations.items,
     approvalGate: {
@@ -50,11 +51,12 @@ const cacheSchema = {
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validateCacheArtifact = ajv.compile(cacheSchema);
 
-export function evaluationInputDigest(page, modelDigest) {
+export function evaluationInputDigest(page, modelDigest, providerConfig = { provider: "unspecified" }) {
   return sha256(JSON.stringify({
     contractVersion: PAGE_EVALUATION_CONTRACT_VERSION,
     approvalGateVersion: APPROVAL_GATE_VERSION,
     modelDigest,
+    providerConfig,
     page: pageEvaluationInput(page)
   }));
 }
@@ -63,8 +65,8 @@ function cachePath(directory, inputDigest) {
   return join(directory, `${inputDigest.slice("sha256:".length)}.json`);
 }
 
-export async function loadCachedEvaluation({ directory, page, messaging, modelDigest }) {
-  const inputDigest = evaluationInputDigest(page, modelDigest);
+export async function loadCachedEvaluation({ directory, page, messaging, modelDigest, providerConfig = { provider: "unspecified" } }) {
+  const inputDigest = evaluationInputDigest(page, modelDigest, providerConfig);
   const path = cachePath(directory, inputDigest);
   let artifact;
   try {
@@ -75,20 +77,20 @@ export async function loadCachedEvaluation({ directory, page, messaging, modelDi
     throw error;
   }
   if (!validateCacheArtifact(artifact)) throw new AuditError("INVALID_EVALUATION_CACHE", "Cached page evaluation failed its JSON contract.", validateCacheArtifact.errors?.map((error) => `${error.instancePath || "/"} ${error.message}`));
-  if (artifact.inputDigest !== inputDigest || artifact.modelDigest !== modelDigest) throw new AuditError("EVALUATION_CACHE_MISMATCH", "Cached page evaluation does not match the current analysis input.");
+  if (artifact.inputDigest !== inputDigest || artifact.modelDigest !== modelDigest || JSON.stringify(artifact.providerConfig) !== JSON.stringify(providerConfig)) throw new AuditError("EVALUATION_CACHE_MISMATCH", "Cached page evaluation does not match the current analysis input or provider configuration.");
   if (artifact.evaluationDigest !== sha256(JSON.stringify(artifact.evaluation))) throw new AuditError("EVALUATION_CACHE_TAMPERED", "Cached page evaluation digest does not match its contents.");
   if (new Set(artifact.approvalGate.reviews.map((review) => review.role)).size !== APPROVAL_ROLES.length) throw new AuditError("INVALID_EVALUATION_CACHE", "Cached page evaluation does not contain one approval from every required role.");
   validatePageResponse({ scoreScale: "0-100", evaluations: [artifact.evaluation] }, [pageEvaluationInput(page)], messaging);
   return { evaluation: artifact.evaluation, approvalGate: artifact.approvalGate, inputDigest, path };
 }
 
-export async function storeCachedEvaluation({ directory, page, evaluation, approvalGate, messaging, modelDigest, createdAt = new Date().toISOString() }) {
+export async function storeCachedEvaluation({ directory, page, evaluation, approvalGate, messaging, modelDigest, providerConfig = { provider: "unspecified" }, createdAt = new Date().toISOString() }) {
   await ensurePrivateDirectory(directory);
   validatePageResponse({ scoreScale: "0-100", evaluations: [evaluation] }, [pageEvaluationInput(page)], messaging);
   if (approvalGate?.status !== "approved" || approvalGate.version !== APPROVAL_GATE_VERSION || approvalGate.reviews?.length !== APPROVAL_ROLES.length || approvalGate.reviews.some((review) => review.decision !== "approve") || new Set(approvalGate.reviews.map((review) => review.role)).size !== APPROVAL_ROLES.length) {
     throw new AuditError("EVALUATION_NOT_APPROVED", "Only evaluations approved by all four required reviewers may be cached.");
   }
-  const inputDigest = evaluationInputDigest(page, modelDigest);
+  const inputDigest = evaluationInputDigest(page, modelDigest, providerConfig);
   const path = cachePath(directory, inputDigest);
   const artifact = {
     schemaVersion: "1.0",
@@ -98,6 +100,7 @@ export async function storeCachedEvaluation({ directory, page, evaluation, appro
     approvalGateVersion: APPROVAL_GATE_VERSION,
     inputDigest,
     modelDigest,
+    providerConfig,
     evaluationDigest: sha256(JSON.stringify(evaluation)),
     evaluation,
     approvalGate
@@ -106,7 +109,7 @@ export async function storeCachedEvaluation({ directory, page, evaluation, appro
     await writeExclusive(path, JSON.stringify(artifact, null, 2) + "\n");
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
-    const existing = await loadCachedEvaluation({ directory, page, messaging, modelDigest });
+    const existing = await loadCachedEvaluation({ directory, page, messaging, modelDigest, providerConfig });
     if (JSON.stringify(existing?.evaluation) !== JSON.stringify(evaluation) || JSON.stringify(existing?.approvalGate) !== JSON.stringify(approvalGate)) throw new AuditError("EVALUATION_CACHE_CONFLICT", "A different approved evaluation already exists for the same analysis input.");
   }
   return { inputDigest, path };

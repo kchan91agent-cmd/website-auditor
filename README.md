@@ -12,6 +12,7 @@ For protected sites, it can analyze either an owner-authorized page bundle or a 
 ## What V1 Does
 
 - accepts one HTML, Markdown, text, DOCX, PDF, or PPTX messaging authority;
+- runs through either an authenticated Codex CLI or Claude Code installation;
 - optionally reads an authorized local checkout or GitHub repository without executing repository code;
 - discovers up to 5,000 primary-host URLs from robots.txt, sitemap indexes, the homepage, navigation, and internal links;
 - renders up to 250 public pages with isolated Playwright Chromium contexts;
@@ -22,21 +23,25 @@ For protected sites, it can analyze either an owner-authorized page bundle or a 
 
 “Estimated prominence” is not traffic. V1 does not access analytics.
 
-## Quick Start
+## Quick Start: Three-Step Pilot
+
+For a ready-to-share enterprise walkthrough, see [`docs/three-step-pilot.md`](docs/three-step-pilot.md).
 
 ### 1. Install and verify
 
-Use Node.js 20 or newer and an authenticated Codex CLI. The agent uses `codex` from `PATH`, or the executable named by `CODEX_BIN`. From the project directory:
+Use Node.js 20 or newer and either an authenticated Codex CLI or Claude Code installation. Select the runtime once for the shell session:
 
 ```bash
+export AUDIT_PROVIDER=claude  # use codex for Codex CLI
+
 npm ci
 npm run setup-browser
-npm run preflight
+npm run preflight -- --provider "$AUDIT_PROVIDER"
 npm test
 npm run check:portability
 ```
 
-Confirm `codex --version` (or `$CODEX_BIN --version`) works before starting an audit. Playwright downloads a pinned Chromium runtime during `setup-browser`. Chromium is needed only for direct public crawling; repository, page-bundle, and archive modes do not execute website repository code.
+Codex uses `codex` from `PATH` or `CODEX_BIN`. Claude uses `claude` from `PATH` or `CLAUDE_BIN`; run `claude auth status` to confirm that Claude Code is authenticated. Playwright downloads a pinned Chromium runtime during `setup-browser`. Chromium is needed only for direct public crawling; repository, page-bundle, and archive modes do not execute website repository code.
 
 ### 2. Freeze the messaging authority
 
@@ -44,18 +49,18 @@ Build the messaging model once, review it, and reuse it so every page is judged 
 
 ```bash
 npm run build-messaging-model -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --messaging /secure/messaging.docx \
   --out /secure/models/messaging-model.json
 ```
 
-### 3. Choose one primary website source
+### 3. Run and review one audit
 
 Public acquisition is the default and needs no website or repository authorization:
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --messaging /secure/messaging.docx \
   --messaging-model /secure/models/messaging-model.json \
@@ -68,7 +73,7 @@ If you have an authorized local checkout, make it the primary source with `--rep
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --repo /secure/checkouts/website \
   --messaging /secure/messaging.docx \
@@ -84,7 +89,7 @@ Or read an authorized GitHub repository through the REST API. Export the token i
 export WEBSITE_AUDIT_GITHUB_TOKEN="<fine-grained read-only token>"
 
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --github-repo owner/website \
   --github-ref main \
@@ -100,7 +105,7 @@ Public GitHub repositories do not require a token. For private repositories, use
 
 Exactly one primary source is used per audit. Supplying `--repo` or `--github-repo` makes repository evidence primary and disables public crawling and archive acquisition for that run. Other source choices are documented below.
 
-### 4. Review and validate the results
+#### Review and validate the results
 
 The output directory receives immutable files that are never overwritten:
 
@@ -122,6 +127,7 @@ Cold-cache page decisions require four independent approvals: messaging provenan
 ### Common controls
 
 - `--model <model>` and `--effort <effort>` select provider runtime settings.
+- `--provider claude` uses Claude Code structured output; `--provider codex` uses Codex structured output. Both use the same validation, scoring, approval, cache, and report contracts.
 - `--max-discovered`, `--max-fetch`, and `--max-analyze` may lower but never exceed V1 safety caps.
 - `--checkpoint-dir <directory>` preserves owner-only rendered-page checkpoints for safe resumption. Checkpoints contain page copy and should be deleted after the run when no longer needed.
 - `--repo`, `--github-repo`, and `--pages` are mutually exclusive source inputs.
@@ -141,7 +147,7 @@ Use an owner-authorized page bundle when the public crawl is blocked or when a c
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --pages /secure/production-page-bundle.json \
   --messaging /secure/messaging.docx \
   --out /secure/audit-001 \
@@ -184,7 +190,7 @@ Common Crawl mode retrieves already-archived public HTML from Common Crawl's ind
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --acquisition common-crawl \
   --messaging /secure/messaging.docx \
@@ -198,7 +204,7 @@ Wayback mode uses the Internet Archive's public CDX index and public replay serv
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --acquisition wayback \
   --messaging /secure/messaging.docx \
@@ -212,7 +218,7 @@ For broader archive discovery, use the reconciled mode:
 
 ```bash
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --acquisition archives \
   --messaging /secure/messaging.docx \
@@ -230,12 +236,12 @@ Extract the messaging architecture once and reuse it across audits to prevent mo
 
 ```bash
 npm run build-messaging-model -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --messaging /secure/messaging.docx \
   --out /secure/models/messaging-model.json
 
 npm run audit -- \
-  --provider codex \
+  --provider "$AUDIT_PROVIDER" \
   --domain https://example.com \
   --acquisition archives \
   --messaging /secure/messaging.docx \
@@ -246,7 +252,7 @@ npm run audit -- \
 
 The frozen model is bound to the source file's SHA-256 digest, parsed source type, character count, and verbatim source locations. An audit fails closed if the source changes, the model is altered, or an excerpt no longer matches the supplied authority. Reports include the model digest and whether extraction was live or frozen.
 
-The optional evaluation cache stores each validated page decision under a digest of the frozen model, complete page-analysis input, and evaluator contract version. Identical evidence reuses the exact prior evaluation; changed page copy, URL metadata, prominence inputs, messaging, or evaluator contract creates a cache miss. Cache artifacts are provenance-validated on every read and must remain in restricted or user-authorized storage because they contain source excerpts.
+The optional evaluation cache stores each validated page decision under a digest of the frozen model, complete page-analysis input, provider/model/effort configuration, and evaluator contract version. Identical evidence reuses the exact prior evaluation; changed page copy, URL metadata, prominence inputs, messaging, provider, model, effort, or evaluator contract creates a cache miss. Cache artifacts are provenance-validated on every read and must remain in restricted or user-authorized storage because they contain source excerpts.
 
 Cold-cache evaluations pass through four independent reviewers before promotion:
 

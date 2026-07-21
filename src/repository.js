@@ -178,7 +178,7 @@ async function localFiles(root) {
 }
 
 function githubHeaders(token) {
-  return { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": API_VERSION, "User-Agent": "WebsiteMessagingRolloutAgent/0.1", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  return { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": API_VERSION, "User-Agent": "WebsiteMessagingRolloutAgent/0.2", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
 async function githubJson(url, token, fetchImpl) {

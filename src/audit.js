@@ -47,18 +47,18 @@ async function evaluatePages({ selected, provider, messagingSource, messaging, m
   const cache = { enabled: Boolean(evaluationCacheDir), contractVersion: "1.0", approvalGateVersion: APPROVAL_GATE_VERSION, hits: 0, misses: 0, writes: 0, quarantinedHits: 0 };
   const ledger = { enabled: Boolean(evaluationCacheDir), pendingRepairs: 0, repairAttempts: 0, quarantinedPages: 0, humanAuthorizedRetries: 0, recoveredApprovals: 0, adjudicatedPages: 0, confirmedQuarantines: 0, manualExceptions: 0 };
   for (const page of pages) {
-    const cached = evaluationCacheDir ? await loadCachedEvaluation({ directory: evaluationCacheDir, page, messaging, modelDigest }) : null;
+    const cached = evaluationCacheDir ? await loadCachedEvaluation({ directory: evaluationCacheDir, page, messaging, modelDigest, providerConfig: provider.modelConfig }) : null;
     if (cached) {
       evaluations.push(cached.evaluation);
       approvalByPage.set(page.pageId, cached.approvalGate);
       cache.hits += 1;
     } else {
       if (evaluationCacheDir) cache.misses += 1;
-      const history = evaluationCacheDir ? await loadRejectionHistory({ directory: evaluationCacheDir, page, messaging, modelDigest }) : { attempts: [] };
+      const history = evaluationCacheDir ? await loadRejectionHistory({ directory: evaluationCacheDir, page, messaging, modelDigest, providerConfig: provider.modelConfig }) : { attempts: [] };
       const lastAttempt = history.attempts.at(-1);
       if (!lastAttempt) pending.push(page);
       else if (lastAttempt.approvalGate.status === "approved") {
-        await storeCachedEvaluation({ directory: evaluationCacheDir, page, evaluation: lastAttempt.evaluation, approvalGate: lastAttempt.approvalGate, messaging, modelDigest, createdAt: lastAttempt.createdAt });
+        await storeCachedEvaluation({ directory: evaluationCacheDir, page, evaluation: lastAttempt.evaluation, approvalGate: lastAttempt.approvalGate, messaging, modelDigest, providerConfig: provider.modelConfig, createdAt: lastAttempt.createdAt });
         evaluations.push(lastAttempt.evaluation);
         approvalByPage.set(page.pageId, lastAttempt.approvalGate);
         cache.writes += 1;
@@ -147,7 +147,7 @@ async function evaluatePages({ selected, provider, messagingSource, messaging, m
         };
         evaluations.push(item.previousEvaluation);
         approvalByPage.set(item.page.pageId, gate);
-        await storeRejectionAttempt({ directory: evaluationCacheDir, page: item.page, evaluation: item.previousEvaluation, approvalGate: gate, mode: item.mode, messaging, modelDigest, createdAt: observedAt });
+        await storeRejectionAttempt({ directory: evaluationCacheDir, page: item.page, evaluation: item.previousEvaluation, approvalGate: gate, mode: item.mode, messaging, modelDigest, providerConfig: provider.modelConfig, createdAt: observedAt });
         ledger.repairAttempts += 1;
         ledger.quarantinedPages += 1;
       }
@@ -188,11 +188,11 @@ async function evaluatePages({ selected, provider, messagingSource, messaging, m
       approvalByPage.set(evaluation.pageId, gate);
       const context = contextByPage.get(evaluation.pageId) ?? { mode: "initial" };
       if (context.mode !== "initial" || gate.status === "rejected") {
-        await storeRejectionAttempt({ directory: evaluationCacheDir, page: pageById.get(evaluation.pageId), evaluation, approvalGate: gate, mode: context.mode, messaging, modelDigest, createdAt: observedAt });
+        await storeRejectionAttempt({ directory: evaluationCacheDir, page: pageById.get(evaluation.pageId), evaluation, approvalGate: gate, mode: context.mode, messaging, modelDigest, providerConfig: provider.modelConfig, createdAt: observedAt });
       }
       if (gate.status === "approved") {
         approval.approvedPages += 1;
-        await storeCachedEvaluation({ directory: evaluationCacheDir, page: pageById.get(evaluation.pageId), evaluation, approvalGate: gate, messaging, modelDigest, createdAt: observedAt });
+        await storeCachedEvaluation({ directory: evaluationCacheDir, page: pageById.get(evaluation.pageId), evaluation, approvalGate: gate, messaging, modelDigest, providerConfig: provider.modelConfig, createdAt: observedAt });
         cache.writes += 1;
       } else {
         approval.rejectedPages += 1;
